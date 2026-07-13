@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ระบบจองพื้นที่ - โรงเรียน</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --primary: #1a56a8; --primary-dark: #133d82; --primary-light: #e8f0fb;
+    --success: #27a85a; --danger: #d94141;
+    --surface-1: #f5f7fb; --surface-2: #eef1f8;
+    --text: #1a1a2e; --text-secondary: #5a6380; --text-muted: #94a0b8;
+    --border: #dde3f0; --radius: 10px;
+    --shadow: 0 2px 16px rgba(26,86,168,0.08);
+    --shadow-lg: 0 8px 32px rgba(26,86,168,0.13);
+  }
+  body { font-family: 'Sarabun','Segoe UI',sans-serif; background: var(--surface-1); color: var(--text); min-height: 100vh; }
+
+  /* NAV */
+  nav { background: var(--primary); padding: 0 2rem; height: 60px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 12px rgba(0,0,0,0.15); position: sticky; top: 0; z-index: 100; }
+  .nav-brand { color: #fff; font-size: 1.1rem; font-weight: 700; display: flex; align-items: center; gap: 10px; }
+  .nav-user { display: flex; align-items: center; gap: 12px; color: rgba(255,255,255,0.9); font-size: 0.9rem; }
+  .btn-logout { background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3); color: #fff; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 0.85rem; transition: background 0.2s; }
+  .btn-logout:hover { background: rgba(255,255,255,0.25); }
+
+  /* LOGIN */
+  #loginPage { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg,#1a3a6b 0%,#1a56a8 60%,#2d73d4 100%); position: relative; overflow: hidden; }
+  #loginPage::before { content:''; position:absolute; width:500px; height:500px; border-radius:50%; background:rgba(255,255,255,0.04); top:-100px; right:-100px; }
+  .login-card { background:#fff; border-radius:16px; padding:2.5rem 2.2rem; width:100%; max-width:440px; box-shadow:0 20px 60px rgba(0,0,0,0.25); position:relative; z-index:1; }
+  .login-logo { text-align:center; margin-bottom:1.8rem; }
+  .login-logo .school-icon { width:64px; height:64px; background:var(--primary); border-radius:14px; display:inline-flex; align-items:center; justify-content:center; font-size:2rem; margin-bottom:12px; }
+  .login-logo h2 { font-size:1.25rem; font-weight:700; }
+  .login-logo p { color:var(--text-secondary); font-size:0.88rem; margin-top:4px; }
+
+  /* SETUP BANNER */
+  .setup-banner { background:#fff8e1; border:1.5px solid #ffe082; border-radius:10px; padding:14px 16px; margin-bottom:1.2rem; font-size:0.83rem; color:#7a5c00; }
+  .setup-banner strong { display:block; margin-bottom:4px; font-size:0.88rem; }
+  .setup-banner input { width:100%; margin-top:8px; padding:8px 10px; border:1.5px solid #ffe082; border-radius:7px; font-size:0.85rem; font-family:inherit; color:var(--text); outline:none; }
+  .setup-banner input:focus { border-color:#f5a623; }
+  .btn-save-url { margin-top:8px; background:#f5a623; color:#fff; border:none; border-radius:7px; padding:7px 14px; font-size:0.82rem; cursor:pointer; font-family:inherit; font-weight:700; }
+  .btn-save-url:hover { background:#d48a10; }
+
+  .form-group { margin-bottom:1.1rem; }
+  .form-group label { display:block; font-size:0.88rem; font-weight:600; color:var(--text); margin-bottom:6px; }
+  .form-group input, .form-group select, .form-group textarea { width:100%; padding:11px 14px; border:1.5px solid var(--border); border-radius:var(--radius); font-size:0.95rem; color:var(--text); transition:border-color 0.2s; outline:none; font-family:inherit; background:#fff; }
+  .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color:var(--primary); box-shadow:0 0 0 3px rgba(26,86,168,0.1); }
+  .form-group textarea { resize:vertical; min-height:80px; }
+  .btn-primary { width:100%; padding:12px; background:var(--primary); color:#fff; border:none; border-radius:var(--radius); font-size:1rem; font-weight:700; cursor:pointer; transition:background 0.2s; font-family:inherit; margin-top:0.5rem; }
+  .btn-primary:hover { background:var(--primary-dark); }
+  .login-note { background:var(--primary-light); border-radius:8px; padding:10px 14px; font-size:0.82rem; color:var(--primary); margin-top:1.2rem; }
+  .error-msg { background:#fdecea; color:var(--danger); border-radius:8px; padding:10px 14px; font-size:0.85rem; margin-bottom:1rem; display:none; }
+
+  /* APP */
+  .app-container { max-width:1100px; margin:0 auto; padding:2rem 1.5rem; }
+  .tabs { display:flex; gap:4px; background:var(--surface-2); border-radius:12px; padding:5px; margin-bottom:2rem; width:fit-content; }
+  .tab-btn { padding:9px 22px; border:none; border-radius:8px; background:transparent; color:var(--text-secondary); font-size:0.92rem; font-weight:600; cursor:pointer; transition:all 0.2s; font-family:inherit; }
+  .tab-btn.active { background:#fff; color:var(--primary); box-shadow:0 1px 8px rgba(0,0,0,0.08); }
+  .section-header { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:1.5rem; flex-wrap:wrap; gap:1rem; }
+  .section-title h2 { font-size:1.4rem; font-weight:700; }
+  .section-title p { color:var(--text-secondary); font-size:0.88rem; margin-top:3px; }
+
+  /* VENUE */
+  .venue-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:1.2rem; margin-bottom:2rem; }
+  .venue-card { background:#fff; border-radius:14px; overflow:hidden; border:1.5px solid var(--border); transition:border-color 0.2s,box-shadow 0.2s,transform 0.2s; cursor:pointer; }
+  .venue-card:hover { border-color:var(--primary); box-shadow:var(--shadow-lg); transform:translateY(-2px); }
+  .venue-img { height:110px; display:flex; align-items:center; justify-content:center; font-size:3rem; }
+  .venue-body { padding:1rem 1.1rem 1.2rem; }
+  .venue-name { font-size:1.05rem; font-weight:700; margin-bottom:4px; }
+  .venue-desc { font-size:0.82rem; color:var(--text-secondary); line-height:1.5; margin-bottom:10px; }
+  .venue-tags { display:flex; flex-wrap:wrap; gap:5px; }
+  .tag { background:var(--primary-light); color:var(--primary); font-size:0.75rem; padding:3px 9px; border-radius:20px; font-weight:600; }
+  .tag.cap { background:#e8faf0; color:var(--success); }
+
+  /* BOOKING FORM */
+  .booking-panel { background:#fff; border-radius:14px; padding:1.8rem; border:1.5px solid var(--border); box-shadow:var(--shadow); }
+  .form-row { display:grid; grid-template-columns:1fr 1fr; gap:1rem; }
+  @media(max-width:600px){ .form-row { grid-template-columns:1fr; } }
+  .selected-venue-display { background:var(--primary-light); border:1.5px solid rgba(26,86,168,0.2); border-radius:var(--radius); padding:12px 16px; display:flex; align-items:center; gap:10px; margin-bottom:1.2rem; }
+  .selected-venue-display strong { color:var(--primary); }
+  .selected-venue-display small { color:var(--text-secondary); font-size:0.82rem; }
+  .btn-submit { background:var(--primary); color:#fff; border:none; border-radius:var(--radius); padding:12px 28px; font-size:1rem; font-weight:700; cursor:pointer; transition:background 0.2s; font-family:inherit; }
+  .btn-submit:hover { background:var(--primary-dark); }
+  .btn-submit:disabled { background:#93b4d9; cursor:not-allowed; }
+  .btn-cancel { background:transparent; color:var(--text-secondary); border:1.5px solid var(--border); border-radius:var(--radius); padding:11px 22px; font-size:0.95rem; cursor:pointer; font-family:inherit; }
+  .form-actions { display:flex; gap:12px; margin-top:1.5rem; justify-content:flex-end; }
+
+  /* BOOKINGS LIST */
+  .booking-list { display:flex; flex-direction:column; gap:1rem; }
+  .booking-item { background:#fff; border-radius:12px; border:1.5px solid var(--border); padding:1.1rem 1.3rem; display:flex; align-items:center; gap:1rem; }
+  .booking-icon { width:50px; height:50px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:1.6rem; flex-shrink:0; }
+  .booking-info { flex:1; }
+  .booking-info h4 { font-size:1rem; font-weight:700; }
+  .booking-info .meta { font-size:0.82rem; color:var(--text-secondary); margin-top:3px; }
+  .booking-status { padding:5px 14px; border-radius:20px; font-size:0.8rem; font-weight:700; white-space:nowrap; }
+  .status-pending { background:#fff8e1; color:#b47a00; }
+  .status-approved { background:#e8faf0; color:var(--success); }
+  .status-rejected { background:#fdecea; color:var(--danger); }
+  .btn-cancel-booking { background:transparent; border:1.5px solid #fbd0d0; color:var(--danger); border-radius:8px; padding:6px 12px; font-size:0.8rem; cursor:pointer; font-family:inherit; }
+
+  /* ADMIN */
+  .admin-table-wrap { overflow-x:auto; }
+  .admin-table { width:100%; border-collapse:collapse; font-size:0.88rem; }
+  .admin-table th { background:var(--surface-2); color:var(--text-secondary); font-weight:700; padding:10px 14px; text-align:left; font-size:0.82rem; text-transform:uppercase; letter-spacing:0.04em; }
+  .admin-table td { padding:12px 14px; border-bottom:1px solid var(--border); vertical-align:middle; }
+  .admin-table tr:last-child td { border-bottom:none; }
+  .action-btns { display:flex; gap:8px; }
+  .btn-approve { background:#e8faf0; color:var(--success); border:1px solid #c2efd6; border-radius:6px; padding:5px 12px; font-size:0.8rem; cursor:pointer; font-weight:700; font-family:inherit; }
+  .btn-reject { background:#fdecea; color:var(--danger); border:1px solid #fbd0d0; border-radius:6px; padding:5px 12px; font-size:0.8rem; cursor:pointer; font-weight:700; font-family:inherit; }
+
+  /* CALENDAR */
+  .calendar-wrap { background:#fff; border-radius:14px; border:1.5px solid var(--border); padding:1.2rem; margin-bottom:1.5rem; }
+  .cal-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem; }
+  .cal-header h3 { font-size:1rem; font-weight:700; }
+  .cal-nav { background:none; border:none; font-size:1.1rem; cursor:pointer; color:var(--text-secondary); padding:4px 8px; }
+  .cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:4px; }
+  .cal-day-label { text-align:center; font-size:0.75rem; color:var(--text-muted); font-weight:700; padding:4px 0; }
+  .cal-day { text-align:center; padding:6px 2px; border-radius:8px; font-size:0.82rem; cursor:pointer; transition:background 0.15s; }
+  .cal-day.other-month { color:var(--text-muted); }
+  .cal-day.today { font-weight:700; color:var(--primary); }
+  .cal-day.has-booking { background:var(--primary); color:#fff; }
+
+  /* EMPTY / LOADING */
+  .empty-state { text-align:center; padding:3rem 1rem; color:var(--text-muted); }
+  .empty-state .icon { font-size:3rem; margin-bottom:1rem; }
+  .loading-row td { text-align:center; padding:2rem; color:var(--text-muted); }
+  .spinner { display:inline-block; width:20px; height:20px; border:2px solid var(--border); border-top-color:var(--primary); border-radius:50%; animation:spin 0.7s linear infinite; margin-right:8px; vertical-align:middle; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+
+  /* TOAST */
+  .toast { position:fixed; bottom:2rem; right:2rem; background:var(--text); color:#fff; padding:14px 22px; border-radius:10px; font-size:0.9rem; box-shadow:0 8px 24px rgba(0,0,0,0.2); transform:translateY(80px); opacity:0; transition:all 0.3s ease; z-index:9999; max-width:320px; }
+  .toast.show { transform:translateY(0); opacity:1; }
+  .toast.success { background:var(--success); }
+  .toast.error { background:var(--danger); }
+  .badge { background:var(--danger); color:#fff; font-size:0.72rem; border-radius:10px; padding:2px 7px; font-weight:700; margin-left:6px; }
+
+  /* SYNC STATUS */
+  .sync-bar { display:flex; align-items:center; gap:8px; font-size:0.8rem; color:var(--text-muted); padding:8px 0 0; }
+  .sync-dot { width:8px; height:8px; border-radius:50%; background:#ccc; flex-shrink:0; }
+  .sync-dot.ok { background:var(--success); }
+  .sync-dot.err { background:var(--danger); }
+  .sync-dot.loading { background:#f5a623; animation:pulse 1s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+</style>
+</head>
+<body>
+
+<!-- LOGIN PAGE -->
+<div id="loginPage" style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#1a3a6b 0%,#1a56a8 60%,#2d73d4 100%);position:relative;overflow:hidden;">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="school-icon">🏫</div>
+      <h2>ระบบจองพื้นที่โรงเรียน</h2>
+      <p>เข้าสู่ระบบด้วยบัญชีนักเรียนภายในโรงเรียน</p>
+    </div>
+
+    <!-- GOOGLE SHEETS SETUP -->
+    <div class="setup-banner" id="setupBanner">
+      <strong>⚙️ ตั้งค่าเชื่อมต่อ Google Sheets</strong>
+      วาง URL ของ Google Apps Script Web App ด้านล่าง แล้วกด "บันทึก"
+      <input type="text" id="scriptUrlInput" placeholder="https://script.google.com/macros/s/AKfy.../exec">
+      <button class="btn-save-url" onclick="saveScriptUrl()">บันทึก URL</button>
+      <div class="sync-bar" id="urlStatus"><span class="sync-dot" id="urlDot"></span><span id="urlMsg">ยังไม่ได้ตั้งค่า</span></div>
+    </div>
+
+    <div id="loginError" class="error-msg">ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง</div>
+    <div class="form-group">
+      <label>รหัสนักเรียน / ชื่อผู้ใช้</label>
+      <input type="text" id="username" placeholder="เช่น 66001 หรือ somchai.s">
+    </div>
+    <div class="form-group">
+      <label>รหัสผ่าน</label>
+      <input type="password" id="password" placeholder="รหัสผ่าน">
+    </div>
+    <button class="btn-primary" onclick="doLogin()">เข้าสู่ระบบ</button>
+    <div class="login-note">🔒 ระบบนี้เปิดให้เฉพาะนักเรียนภายในโรงเรียนเท่านั้น</div>
+    <div style="margin-top:1rem;font-size:0.78rem;color:var(--text-muted);text-align:center;">
+      ทดสอบ: นักเรียน <strong>student / 1234</strong> | แอดมิน <strong>admin / admin</strong>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="appWrapper" style="display:none;">
+  <nav>
+    <div class="nav-brand"><span>🏫</span> ระบบจองพื้นที่ — โรงเรียน</div>
+    <div class="nav-user">
+      <div class="sync-bar" style="margin:0;">
+        <span class="sync-dot" id="navSyncDot"></span>
+        <span id="navSyncMsg" style="font-size:0.78rem;color:rgba(255,255,255,0.7);">Google Sheets</span>
+      </div>
+      <span id="navUserName"></span>
+      <button class="btn-logout" onclick="doLogout()">ออกจากระบบ</button>
+    </div>
+  </nav>
+  <div class="app-container">
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('book',this)">📅 จองพื้นที่</button>
+      <button class="tab-btn" onclick="switchTab('mybookings',this)">📋 การจองของฉัน</button>
+      <button class="tab-btn" id="adminTabBtn" onclick="switchTab('admin',this)" style="display:none;">⚙️ จัดการ <span class="badge" id="pendingBadge" style="display:none;">0</span></button>
+    </div>
+
+    <!-- TAB: BOOK -->
+    <div id="tab-book">
+      <div id="venueSelect">
+        <div class="section-header">
+          <div class="section-title"><h2>เลือกพื้นที่ที่ต้องการจอง</h2><p>คลิกพื้นที่เพื่อดูรายละเอียดและทำการจอง</p></div>
+        </div>
+        <div class="venue-grid" id="venueGrid"></div>
+      </div>
+      <div id="bookingForm" style="display:none;">
+        <div class="section-header">
+          <div class="section-title"><h2>กรอกรายละเอียดการจอง</h2><p>ระบุวัน เวลา และวัตถุประสงค์การใช้งาน</p></div>
+        </div>
+        <div class="booking-panel">
+          <div class="selected-venue-display" id="selectedVenueDisplay"></div>
+          <div class="form-row">
+            <div class="form-group"><label>วันที่จอง</label><input type="date" id="bookDate"></div>
+            <div class="form-group"><label>ช่วงเวลา</label>
+              <select id="bookSlot">
+                <option value="08:00-10:00">08:00 – 10:00 น.</option>
+                <option value="10:00-12:00">10:00 – 12:00 น.</option>
+                <option value="12:00-14:00">12:00 – 14:00 น.</option>
+                <option value="14:00-16:00">14:00 – 16:00 น.</option>
+                <option value="16:00-18:00">16:00 – 18:00 น.</option>
+                <option value="08:00-12:00">ครึ่งเช้า (08:00 – 12:00)</option>
+                <option value="12:00-16:00">ครึ่งบ่าย (12:00 – 16:00)</option>
+                <option value="08:00-16:00">เต็มวัน (08:00 – 16:00)</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label>ชื่อกิจกรรม / โครงการ</label><input type="text" id="bookActivity" placeholder="เช่น ประชุมชมรมวิทยาศาสตร์"></div>
+            <div class="form-group"><label>ห้อง / ชั้นปีที่รับผิดชอบ</label><input type="text" id="bookClass" placeholder="เช่น ม.5/2 หรือ ชมรม IT"></div>
+          </div>
+          <div class="form-group"><label>รายละเอียดเพิ่มเติม</label><textarea id="bookDetail" placeholder="จำนวนผู้เข้าร่วม, อุปกรณ์ที่ต้องการ, หรือข้อมูลอื่นๆ"></textarea></div>
+          <div class="form-actions">
+            <button class="btn-cancel" onclick="cancelForm()">← กลับ</button>
+            <button class="btn-submit" id="btnSubmit" onclick="submitBooking()">ส่งคำขอจอง</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: MY BOOKINGS -->
+    <div id="tab-mybookings" style="display:none;">
+      <div class="section-header">
+        <div class="section-title"><h2>การจองของฉัน</h2><p>ประวัติและสถานะคำขอจองพื้นที่ทั้งหมดของคุณ</p></div>
+        <button onclick="loadBookings()" style="background:var(--primary-light);color:var(--primary);border:none;border-radius:8px;padding:8px 16px;cursor:pointer;font-family:inherit;font-size:0.88rem;font-weight:600;">🔄 รีเฟรช</button>
+      </div>
+      <div class="calendar-wrap">
+        <div class="cal-header">
+          <button class="cal-nav" onclick="calPrev()">‹</button>
+          <h3 id="calTitle"></h3>
+          <button class="cal-nav" onclick="calNext()">›</button>
+        </div>
+        <div class="cal-grid" id="calGrid"></div>
+      </div>
+      <div class="booking-list" id="myBookingList"></div>
+    </div>
+
+    <!-- TAB: ADMIN -->
+    <div id="tab-admin" style="display:none;">
+      <div class="section-header">
+        <div class="section-title"><h2>จัดการคำขอจองพื้นที่</h2><p>อนุมัติหรือปฏิเสธคำขอจากนักเรียน — ซิงค์กับ Google Sheets อัตโนมัติ</p></div>
+        <button onclick="loadBookings()" style="background:var(--primary-light);color:var(--primary);border:none;border-radius:8px;padding:8px 16px;cursor:pointer;font-family:inherit;font-size:0.88rem;font-weight:600;">🔄 รีเฟรช</button>
+      </div>
+      <div style="background:#fff;border-radius:14px;border:1.5px solid var(--border);overflow:hidden;">
+        <div class="admin-table-wrap">
+          <table class="admin-table">
+            <thead><tr><th>พื้นที่</th><th>นักเรียน</th><th>วันที่</th><th>เวลา</th><th>กิจกรรม</th><th>สถานะ</th><th>การดำเนินการ</th></tr></thead>
+            <tbody id="adminTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ============================================================
+// CONFIG — แก้ตรงนี้เพื่อเปลี่ยน Script URL ได้เลย
+// ============================================================
+const SCRIPT_URL_KEY = 'school_booking_script_url';
+let SCRIPT_URL = localStorage.getItem(SCRIPT_URL_KEY) || 'https://script.google.com/macros/s/AKfycbwSKFEBqfzIjglhSMV6jG-3IvfidAeqesGEM8o325Srv0DlunRW4WEMquUt-bFr_IGB7w/exec';
+
+// ============================================================
+// USERS (local auth — ไม่ส่งรหัสผ่านออกไป server)
+// ============================================================
+const USERS = [
+  { id:'student', password:'1234', name:'สมชาย ใจดี',    class:'ม.5/2',      role:'student' },
+  { id:'admin',   password:'admin', name:'ครูประจำการ',   class:'ฝ่ายกิจการ', role:'admin'   },
+  { id:'66001',   password:'1234', name:'สุดา มีสุข',    class:'ม.4/1',      role:'student' },
+  { id:'66002',   password:'1234', name:'ธนาวุฒิ สว่าง', class:'ม.6/3',      role:'student' },
+];
+
+const VENUES = [
+  { id:'dome1',  name:'โดม (อาคาร 1)',      desc:'พื้นที่โดมอเนกประสงค์ กีฬา นิทรรศการ',           icon:'🏟️', bg:'#e8f0fb', tags:['500+ คน','กีฬา','นิทรรศการ'], capacity:500 },
+  { id:'hall',   name:'หอประชุมศรีปทุม',    desc:'หอประชุมใหญ่ พร้อมระบบเสียงและแสงสี',             icon:'🎭', bg:'#f0e8fb', tags:['800 คน','ระบบเสียง','เวที'],   capacity:800 },
+  { id:'sripol', name:'ห้องศรีพล',          desc:'ห้องประชุมขนาดกลาง พร้อม Projector และ WiFi',    icon:'🏛️', bg:'#e8fbf0', tags:['80 คน','Projector','WiFi'],     capacity:80  },
+  { id:'dome2',  name:'โดม (อาคาร 2)',      desc:'โดมพหุประสงค์ขนาดกลาง กิจกรรมกลุ่ม ซ้อม',       icon:'⛺', bg:'#fbeae8', tags:['200 คน','กิจกรรมกลุ่ม'],       capacity:200 },
+];
+
+let currentUser = null;
+let selectedVenue = null;
+let bookings = [];
+let calYear = new Date().getFullYear();
+let calMonth = new Date().getMonth();
+
+// ============================================================
+// SETUP URL
+// ============================================================
+function saveScriptUrl() {
+  const url = document.getElementById('scriptUrlInput').value.trim();
+  if (!url.startsWith('https://script.google.com')) {
+    setUrlStatus('err','URL ไม่ถูกต้อง ต้องเริ่มด้วย https://script.google.com'); return;
+  }
+  SCRIPT_URL = url;
+  localStorage.setItem(SCRIPT_URL_KEY, url);
+  setUrlStatus('loading','กำลังทดสอบการเชื่อมต่อ...');
+  apiCall('ping').then(() => setUrlStatus('ok','เชื่อมต่อสำเร็จ ✓'))
+                 .catch(() => setUrlStatus('err','เชื่อมต่อไม่ได้ — ตรวจสอบ URL อีกครั้ง'));
+}
+function setUrlStatus(type, msg) {
+  const dot = document.getElementById('urlDot');
+  document.getElementById('urlMsg').textContent = msg;
+  dot.className = 'sync-dot ' + (type === 'ok' ? 'ok' : type === 'err' ? 'err' : 'loading');
+}
+function setNavSync(type, msg) {
+  const dot = document.getElementById('navSyncDot');
+  if (!dot) return;
+  document.getElementById('navSyncMsg').textContent = msg;
+  dot.className = 'sync-dot ' + (type === 'ok' ? 'ok' : type === 'err' ? 'err' : 'loading');
+}
+
+// On load — show saved URL
+window.addEventListener('load', () => {
+  if (SCRIPT_URL) {
+    document.getElementById('scriptUrlInput').value = SCRIPT_URL;
+    setUrlStatus('loading','กำลังตรวจสอบ...');
+    apiCall('ping').then(() => setUrlStatus('ok','เชื่อมต่อสำเร็จ ✓'))
+                   .catch(() => setUrlStatus('err','เชื่อมต่อไม่ได้'));
+  }
+});
+
+// ============================================================
+// API — Google Apps Script (CORS-safe)
+// GET  → jsonp callback trick (script tag)
+// POST → no-cors form submit (ไม่อ่าน response ได้ แต่บันทึกได้)
+// ============================================================
+function apiGet(action, payload = {}) {
+  return new Promise((resolve, reject) => {
+    if (!SCRIPT_URL) { reject(new Error('no_url')); return; }
+    const cbName = '_cb_' + Date.now();
+    const url = new URL(SCRIPT_URL);
+    url.searchParams.set('action', action);
+    url.searchParams.set('callback', cbName);
+    Object.entries(payload).forEach(([k,v]) => url.searchParams.set(k, String(v)));
+
+    const timer = setTimeout(() => {
+      cleanup(); reject(new Error('timeout'));
+    }, 8000);
+
+    window[cbName] = (data) => {
+      cleanup(); resolve(data);
+    };
+
+    const script = document.createElement('script');
+    script.src = url.toString();
+    script.onerror = () => { cleanup(); reject(new Error('script_error')); };
+    document.head.appendChild(script);
+
+    function cleanup() {
+      clearTimeout(timer);
+      delete window[cbName];
+      if (script.parentNode) script.parentNode.removeChild(script);
+    }
+  });
+}
+
+// alias สำหรับ ping/getBookings
+async function apiCall(action, payload = {}) {
+  return apiGet(action, payload);
+}
+
+async function apiPost(action, payload = {}) {
+  if (!SCRIPT_URL) throw new Error('no_url');
+  // POST แบบ no-cors — ส่งได้แต่อ่าน response ไม่ได้ (ปกติสำหรับ Apps Script)
+  const body = new URLSearchParams({ action, ...payload });
+  await fetch(SCRIPT_URL, {
+    method: 'POST',
+    mode: 'no-cors',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: body.toString()
+  });
+  // no-cors ไม่ throw error แม้ส่งสำเร็จ — ถือว่าสำเร็จเสมอ
+  return { ok: true };
+}
+
+// ============================================================
+// AUTH
+// ============================================================
+function doLogin() {
+  const uid = document.getElementById('username').value.trim();
+  const pwd = document.getElementById('password').value;
+  const user = USERS.find(u => u.id === uid && u.password === pwd);
+  if (!user) { document.getElementById('loginError').style.display='block'; return; }
+  currentUser = user;
+  document.getElementById('loginError').style.display = 'none';
+  document.getElementById('loginPage').style.display = 'none';
+  document.getElementById('appWrapper').style.display = 'block';
+  document.getElementById('navUserName').textContent = `👤 ${user.name} (${user.class})`;
+  if (user.role === 'admin') document.getElementById('adminTabBtn').style.display = 'inline-block';
+  renderVenues();
+  loadBookings();
+}
+function doLogout() {
+  currentUser = null; selectedVenue = null; bookings = [];
+  document.getElementById('appWrapper').style.display = 'none';
+  document.getElementById('loginPage').style.display = 'flex';
+  document.getElementById('username').value = '';
+  document.getElementById('password').value = '';
+  document.getElementById('adminTabBtn').style.display = 'none';
+  switchTab('book', document.querySelector('.tab-btn'));
+}
+
+// ============================================================
+// LOAD BOOKINGS FROM SHEETS
+// ============================================================
+async function loadBookings() {
+  setNavSync('loading','กำลังโหลด...');
+  try {
+    const data = await apiCall('getBookings');
+    bookings = data.bookings || [];
+    setNavSync('ok','ซิงค์แล้ว ' + new Date().toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'}));
+    updatePendingBadge();
+    const activeTab = document.querySelector('.tab-btn.active');
+    if (document.getElementById('tab-mybookings').style.display !== 'none') renderMyBookings();
+    if (document.getElementById('tab-admin').style.display !== 'none') renderAdminTable();
+    renderCalendar();
+  } catch(e) {
+    if (e.message === 'no_url') {
+      setNavSync('err','ยังไม่ได้ตั้งค่า URL');
+      bookings = getSampleBookings();
+    } else {
+      setNavSync('err','เชื่อมต่อไม่ได้');
+      showToast('โหลดข้อมูลไม่ได้ — ใช้ข้อมูลตัวอย่างแทน', 'error');
+      bookings = getSampleBookings();
+    }
+    updatePendingBadge();
+    renderMyBookings();
+    renderAdminTable();
+    renderCalendar();
+  }
+}
+
+function getSampleBookings() {
+  return [
+    { id:'1', userId:'student', userName:'สมชาย ใจดี', venueId:'hall', venueName:'หอประชุมศรีปทุม', date:'2025-07-10', slot:'09:00-12:00', activity:'พิธีไหว้ครู', class:'ม.5/2', detail:'ผู้เข้าร่วม ~200 คน', status:'approved' },
+    { id:'2', userId:'student', userName:'สมชาย ใจดี', venueId:'dome1', venueName:'โดม (อาคาร 1)', date:'2025-07-20', slot:'08:00-16:00', activity:'กีฬาสี', class:'ม.5/2', detail:'แข่งบาสเก็ตบอล', status:'pending' },
+  ];
+}
+
+// ============================================================
+// TABS
+// ============================================================
+function switchTab(tab, btn) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  ['book','mybookings','admin'].forEach(t => {
+    document.getElementById('tab-'+t).style.display = t===tab ? 'block' : 'none';
+  });
+  if (tab === 'mybookings') { loadBookings(); }
+  if (tab === 'admin') { loadBookings(); }
+}
+
+// ============================================================
+// VENUES
+// ============================================================
+function renderVenues() {
+  document.getElementById('venueGrid').innerHTML = VENUES.map(v => `
+    <div class="venue-card" onclick="selectVenue('${v.id}')">
+      <div class="venue-img" style="background:${v.bg}">${v.icon}</div>
+      <div class="venue-body">
+        <div class="venue-name">${v.name}</div>
+        <div class="venue-desc">${v.desc}</div>
+        <div class="venue-tags">
+          <span class="tag cap">${v.tags[0]}</span>
+          ${v.tags.slice(1).map(t=>`<span class="tag">${t}</span>`).join('')}
+        </div>
+      </div>
+    </div>`).join('');
+}
+function selectVenue(id) {
+  selectedVenue = VENUES.find(v => v.id === id);
+  document.getElementById('venueSelect').style.display = 'none';
+  document.getElementById('bookingForm').style.display = 'block';
+  document.getElementById('selectedVenueDisplay').innerHTML = `
+    <span style="font-size:1.6rem">${selectedVenue.icon}</span>
+    <div><strong>${selectedVenue.name}</strong><br><small>รองรับสูงสุด ${selectedVenue.capacity} คน</small></div>`;
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('bookDate').min = today;
+  document.getElementById('bookDate').value = today;
+}
+function cancelForm() {
+  document.getElementById('bookingForm').style.display = 'none';
+  document.getElementById('venueSelect').style.display = 'block';
+  selectedVenue = null;
+}
+
+// ============================================================
+// SUBMIT BOOKING → POST to Sheets
+// ============================================================
+async function submitBooking() {
+  const date = document.getElementById('bookDate').value;
+  const slot = document.getElementById('bookSlot').value;
+  const activity = document.getElementById('bookActivity').value.trim();
+  const cls = document.getElementById('bookClass').value.trim();
+  if (!date || !activity || !cls) { showToast('กรุณากรอกข้อมูลให้ครบถ้วน','error'); return; }
+
+  const conflict = bookings.find(b =>
+    b.venueId === selectedVenue.id && b.date === date && b.slot === slot &&
+    (b.status === 'approved' || b.status === 'pending')
+  );
+  if (conflict) { showToast('พื้นที่นี้ถูกจองในช่วงเวลาดังกล่าวแล้ว กรุณาเลือกเวลาอื่น','error'); return; }
+
+  const btn = document.getElementById('btnSubmit');
+  btn.disabled = true; btn.textContent = 'กำลังส่ง...';
+
+  const payload = {
+    userId: currentUser.id, userName: currentUser.name,
+    venueId: selectedVenue.id, venueName: selectedVenue.name,
+    date, slot, activity, class: cls,
+    detail: document.getElementById('bookDetail').value.trim(),
+    status: 'pending',
+    createdAt: new Date().toISOString()
+  };
+
+  try {
+    await apiPost('addBooking', payload);
+    showToast('ส่งคำขอจองเรียบร้อย — บันทึกใน Google Sheets แล้ว ✓','success');
+  } catch(e) {
+    // fallback: เก็บ local แล้วแจ้งเตือน
+    bookings.push({ id: Date.now().toString(), ...payload });
+    showToast('ส่งคำขอแล้ว (ออฟไลน์) — ตรวจสอบการเชื่อมต่ออีกครั้ง','error');
+  }
+
+  btn.disabled = false; btn.textContent = 'ส่งคำขอจอง';
+  cancelForm();
+  document.getElementById('bookActivity').value = '';
+  document.getElementById('bookClass').value = '';
+  document.getElementById('bookDetail').value = '';
+  await loadBookings();
+}
+
+// ============================================================
+// MY BOOKINGS
+// ============================================================
+function renderMyBookings() {
+  const myB = bookings.filter(b => String(b.userId||b.userId||'') === String(currentUser.id))
+    .sort((a,b) => new Date(b.date)-new Date(a.date));
+  const list = document.getElementById('myBookingList');
+  if (!myB.length) {
+    list.innerHTML = `<div class="empty-state"><div class="icon">📭</div><p>ยังไม่มีการจองพื้นที่ กดแท็บ "จองพื้นที่" เพื่อเริ่มต้น</p></div>`;
+    return;
+  }
+  const sm = { pending:['status-pending','รอการอนุมัติ'], approved:['status-approved','อนุมัติแล้ว'], rejected:['status-rejected','ไม่อนุมัติ'] };
+  list.innerHTML = myB.map(b => {
+    const v = VENUES.find(v=>v.id===b.venueId);
+    const [sc,sl] = sm[b.status] || ['',''];
+    return `<div class="booking-item">
+      <div class="booking-icon" style="background:${v?.bg||'#eee'}">${v?.icon||'📍'}</div>
+      <div class="booking-info">
+        <h4>${b.venueName}</h4>
+        <div class="meta">📅 ${formatDate(b.date)} &nbsp;⏰ ${b.slot} น. &nbsp;🎯 ${b.activity} &nbsp;👥 ${b['class']||b.class}</div>
+        ${b.detail?`<div class="meta">📝 ${b.detail}</div>`:''}
+      </div>
+      <span class="booking-status ${sc}">${sl}</span>
+      ${b.status==='pending'?`<button class="btn-cancel-booking" onclick="cancelBooking('${b.id}')">ยกเลิก</button>`:''}
+    </div>`;
+  }).join('');
+}
+
+async function cancelBooking(id) {
+  if (!confirm('ยืนยันการยกเลิกคำขอจองนี้?')) return;
+  try {
+    await apiPost('updateStatus', { id, status:'cancelled' });
+    showToast('ยกเลิกคำขอจองเรียบร้อย');
+  } catch(e) {
+    bookings = bookings.filter(b=>b.id!==id);
+    showToast('ยกเลิกแล้ว (ออฟไลน์)');
+  }
+  await loadBookings();
+}
+
+// ============================================================
+// ADMIN
+// ============================================================
+function renderAdminTable() {
+  const tbody = document.getElementById('adminTableBody');
+  const sorted = [...bookings].sort((a,b)=>{
+    const ord={pending:0,approved:1,rejected:2,cancelled:3};
+    return (ord[a.status]??4)-(ord[b.status]??4) || new Date(a.date)-new Date(b.date);
+  });
+  if (!sorted.length) {
+    tbody.innerHTML=`<tr class="loading-row"><td colspan="7">ยังไม่มีคำขอจอง</td></tr>`; return;
+  }
+  const sm={pending:['status-pending','รอการอนุมัติ'],approved:['status-approved','อนุมัติแล้ว'],rejected:['status-rejected','ไม่อนุมัติ'],cancelled:['status-rejected','ยกเลิกแล้ว']};
+  tbody.innerHTML = sorted.map(b => {
+    const [sc,sl] = sm[b.status]||['',''];
+    const canAct = b.status==='pending';
+    return `<tr>
+      <td><strong>${b.venueName}</strong></td>
+      <td>${b.userName}<br><small style="color:var(--text-muted)">${b['class']||b.class||''}</small></td>
+      <td>${formatDate(b.date)}</td>
+      <td>${b.slot} น.</td>
+      <td>${b.activity}${b.detail?`<br><small style="color:var(--text-muted)">${b.detail}</small>`:''}</td>
+      <td><span class="booking-status ${sc}">${sl}</span></td>
+      <td><div class="action-btns">
+        ${canAct
+          ? `<button class="btn-approve" data-bid="${b.ID||b.id}" onclick="adminAction(this.getAttribute('data-bid'),'approved')">✓ อนุมัติ</button>
+             <button class="btn-reject"  data-bid="${b.ID||b.id}" onclick="adminAction(this.getAttribute('data-bid'),'rejected')">✕ ปฏิเสธ</button>`
+          : `<span style="color:var(--text-muted);font-size:0.82rem">ดำเนินการแล้ว</span>`}
+      </div></td>
+    </tr>`;
+  }).join('');
+}
+
+async function adminAction(id, status) {
+  const b = bookings.find(x=>(x.ID||x.id)===String(id));
+  const label = b ? b.activity : id;
+  showToast('กำลังบันทึก...','');
+  try {
+    await apiPost('updateStatus', { id: String(id), status });
+    showToast(status==='approved'?`อนุมัติการจอง "${label}" แล้ว ✓`:`ปฏิเสธคำขอ "${label}" แล้ว`, status==='approved'?'success':'error');
+  } catch(e) {
+    if(b) b.status=status;
+    showToast('บันทึกแล้ว (อาจเป็นออฟไลน์)');
+  }
+  await loadBookings();
+}
+
+function updatePendingBadge() {
+  const n = bookings.filter(b=>b.status==='pending').length;
+  const badge = document.getElementById('pendingBadge');
+  badge.textContent = n;
+  badge.style.display = n ? 'inline' : 'none';
+}
+
+// ============================================================
+// CALENDAR
+// ============================================================
+function renderCalendar() {
+  const title = document.getElementById('calTitle'); if(!title) return;
+  const thM=['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+  title.textContent=`${thM[calMonth]} ${calYear+543}`;
+  const grid=document.getElementById('calGrid');
+  const days=['อา','จ','อ','พ','พฤ','ศ','ส'];
+  let html=days.map(d=>`<div class="cal-day-label">${d}</div>`).join('');
+  const first=new Date(calYear,calMonth,1).getDay();
+  const lastDay=new Date(calYear,calMonth+1,0).getDate();
+  const prevLast=new Date(calYear,calMonth,0).getDate();
+  const today=new Date();
+  const myDates=new Set(bookings.filter(b=>b.userId===currentUser?.id&&b.status!=='rejected'&&b.status!=='cancelled').map(b=>b.date));
+  for(let i=0;i<first;i++) html+=`<div class="cal-day other-month">${prevLast-first+i+1}</div>`;
+  for(let d=1;d<=lastDay;d++){
+    const ds=`${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const isTod=d===today.getDate()&&calMonth===today.getMonth()&&calYear===today.getFullYear();
+    const hasB=myDates.has(ds);
+    html+=`<div class="cal-day${isTod?' today':''}${hasB?' has-booking':''}">${d}</div>`;
+  }
+  grid.innerHTML=html;
+}
+function calPrev(){calMonth--;if(calMonth<0){calMonth=11;calYear--;}renderCalendar();}
+function calNext(){calMonth++;if(calMonth>11){calMonth=0;calYear++;}renderCalendar();}
+
+// ============================================================
+// UTILS
+// ============================================================
+function formatDate(str){
+  if(!str||str==='') return '—';
+  const thM=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+  const s=String(str).trim();
+  // YYYY-MM-DD
+  if(/^\d{4}-\d{2}-\d{2}/.test(s)){
+    const[yy,mm,dd]=s.split('T')[0].split('-');
+    return parseInt(dd)+' '+thM[parseInt(mm)-1]+' '+(parseInt(yy)+543);
+  }
+  // DD/MM/YYYY or MM/DD/YYYY
+  if(s.includes('/')){
+    const p=s.split('/');
+    let dd,mm,yy;
+    if(p[2]&&p[2].length===4){[dd,mm,yy]=p;}else{[mm,dd,yy]=p;}
+    return parseInt(dd)+' '+thM[parseInt(mm)-1]+' '+(parseInt(yy)+543);
+  }
+  // Any other format — parse as Date object (handles "Sun Sep 06 2026...", ISO, etc.)
+  const dt=new Date(str);
+  if(!isNaN(dt)) return dt.getDate()+' '+thM[dt.getMonth()]+' '+(dt.getFullYear()+543);
+  return s;
+}
+let toastTimer;
+function showToast(msg,type=''){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.className='toast'+(type?' '+type:'');
+  void t.offsetWidth; t.classList.add('show');
+  clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove('show'),3500);
+}
+document.getElementById('password').addEventListener('keyup',e=>{if(e.key==='Enter')doLogin();});
+document.getElementById('username').addEventListener('keyup',e=>{if(e.key==='Enter')document.getElementById('password').focus();});
+</script>
+</body>
+</html>
